@@ -103,6 +103,7 @@
   const canvas = document.getElementById('trust-chart');
   if (!canvas) return;
 
+  function drawChart() {
   const ctx = canvas.getContext('2d');
   const data = [
     { year: '1958', trust: 73 },
@@ -218,4 +219,12 @@
   ctx.textAlign = 'center';
   ctx.fillText('Trust in Government (%)', -(PAD.top + chartH / 2), 14);
   ctx.restore();
+  }
+
+  // Wait for full layout so offsetWidth is never 0
+  if (document.readyState === 'complete') {
+    drawChart();
+  } else {
+    window.addEventListener('load', drawChart);
+  }
 })();
