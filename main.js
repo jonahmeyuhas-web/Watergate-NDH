@@ -1,6 +1,7 @@
-/* WATERGATE: REVOLUTION, REACTION, REFORM - NHD 2026 */
+/* WATERGATE: REVOLUTION, REACTION, REFORM — NHD 2026 */
+'use strict';
 
-/* MOBILE NAV TOGGLE */
+/* ── MOBILE NAV TOGGLE ──────────────────────────────────── */
 (function () {
   const hamburger = document.querySelector('.nav-hamburger');
   const navLinks  = document.querySelector('.nav-links');
@@ -10,13 +11,12 @@
     const isOpen = navLinks.classList.toggle('open');
     hamburger.setAttribute('aria-expanded', isOpen);
   });
-
   navLinks.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', () => navLinks.classList.remove('open'));
   });
 })();
 
-/* ACTIVE NAV LINK */
+/* ── ACTIVE NAV LINK ────────────────────────────────────── */
 (function () {
   const current = window.location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav-links a').forEach(link => {
@@ -25,27 +25,73 @@
   });
 })();
 
-/* SCROLL-TRIGGERED FADE-IN */
+/* ── NAV SCROLL EFFECT ──────────────────────────────────── */
 (function () {
-  const targets = document.querySelectorAll('.fade-in');
+  const nav = document.querySelector('.site-nav');
+  if (!nav) return;
+  let ticking = false;
+  function update() {
+    nav.classList.toggle('nav-scrolled', window.scrollY > 50);
+    ticking = false;
+  }
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+})();
+
+/* ── STAGGER CONVERSION (runs before observer) ──────────── */
+(function () {
+  // Convert grid containers with .fade-in into per-child staggered reveals
+  const grids = document.querySelectorAll('.reform-grid.fade-in, .three-col.fade-in, .stat-row.fade-in');
+  grids.forEach(grid => {
+    const children = Array.from(grid.children);
+    if (children.length < 2) return;
+    grid.classList.remove('fade-in');
+    children.forEach((child, i) => {
+      child.classList.add('fade-in');
+      child.style.transitionDelay = (i * 110) + 'ms';
+    });
+  });
+})();
+
+/* ── REDACTED SECTION HEADERS (runs before observer) ────── */
+(function () {
+  document.querySelectorAll('.section-header.fade-in h2').forEach(el => {
+    const wrap = document.createElement('span');
+    wrap.className = 'redact-wrap';
+    while (el.firstChild) wrap.appendChild(el.firstChild);
+    const bar = document.createElement('span');
+    bar.className = 'redact-bar';
+    wrap.appendChild(bar);
+    el.appendChild(wrap);
+  });
+})();
+
+/* ── SCROLL OBSERVER ────────────────────────────────────── */
+(function () {
+  const targets = [
+    ...document.querySelectorAll('.fade-in'),
+    ...document.querySelectorAll('.divider'),
+  ];
   if (!targets.length) return;
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.1 }
-  );
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('visible');
+      obs.unobserve(entry.target);
+
+      if (entry.target.classList.contains('section-header')) {
+        const bar = entry.target.querySelector('.redact-bar');
+        if (bar) setTimeout(() => bar.classList.add('revealing'), 320);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
 
   targets.forEach(el => observer.observe(el));
 })();
 
-/* SMOOTH SCROLL FOR IN-PAGE ANCHORS */
+/* ── SMOOTH SCROLL ──────────────────────────────────────── */
 (function () {
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -58,7 +104,30 @@
   });
 })();
 
-/* TRUST CHART (significance page) */
+/* ── TIMELINE TRAIL (scandal page only) ─────────────────── */
+(function () {
+  const trail = document.querySelector('.tl-trail');
+  if (!trail) return;
+
+  // Inject the animated fill line
+  const fillLine = document.createElement('div');
+  fillLine.className = 'tl-line-fill';
+  trail.appendChild(fillLine);
+
+  function updateFill() {
+    const trailRect = trail.getBoundingClientRect();
+    const trailTop  = trail.offsetTop + 24;
+    const trailH    = trail.offsetHeight - 48;
+    const scrolled  = window.scrollY + window.innerHeight * 0.72;
+    const progress  = Math.max(0, Math.min(1, (scrolled - trailTop) / trailH));
+    fillLine.style.height = (progress * trailH) + 'px';
+  }
+
+  window.addEventListener('scroll', updateFill, { passive: true });
+  updateFill();
+})();
+
+/* ── TRUST CHART (significance page) ────────────────────── */
 (function () {
   const canvas = document.getElementById('trust-chart');
   if (!canvas) return;
